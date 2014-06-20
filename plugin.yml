@@ -1,0 +1,4 @@
+name: TestTradingPlugin
+main: com.afterkraft.tradingtest.TestTradingPlugin
+version: 1.0
+authors: [gabizou]
