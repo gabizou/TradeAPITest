@@ -1,16 +1,18 @@
 package com.afterkraft.tradingtest;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.entity.Merchant;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.TradeOffer.TradeType;
+import org.bukkit.inventory.MerchantInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.event.merchant.MerchantTradeEvent;
 import org.bukkit.inventory.TradeOffer;
 
 public class TestTradingPlugin extends JavaPlugin implements Listener {
@@ -23,9 +25,14 @@ public class TestTradingPlugin extends JavaPlugin implements Listener {
      * Test simply overriding all TradeOffers
      */ 
     @EventHandler
-    public void replaceAllTrades(MerchantTradeEvent event) {
-        for (TradeOffer offer : event.getOffers()) {
-            event.removeOffer(offer);
+    public void replaceAllTrades(InventoryOpenEvent event) {
+        if (!(event.getInventory() instanceof MerchantInventory)) {
+            return;
+        }
+        List<TradeOffer> offers = ((MerchantInventory) event.getInventory()).getOffers();
+        Merchant merchant = ((MerchantInventory) event.getInventory()).getMerchant();
+        for (TradeOffer offer : offers) {
+            merchant.removeOffer(offer);
         }
         ItemStack diamonds = new ItemStack(Material.EMERALD, 1);
         ItemStack result = new ItemStack(Material.GOLD_INGOT, 1);
@@ -33,39 +40,15 @@ public class TestTradingPlugin extends JavaPlugin implements Listener {
         meta.setDisplayName(ChatColor.AQUA + "Customized TradeOffer Result");
         meta.setLore(Arrays.asList("This is a customized offer generated from", "TestTradingPlugin#replaceAllTrades."));
         result.setItemMeta(meta);
-        event.addOffer(new TradeOffer(diamonds, result));
-        for (TradeOffer offer: event.getOffers()) {
-            getLogger().info("[setUpCustomTrades] - add - Type is: " + offer.getTradeType().toString());
+        merchant.addOffer(TradeOffer.builder()
+                .withFirstItem(diamonds)
+                .withResultingItem(result)
+                .build());
+        for (TradeOffer offer: ((MerchantInventory) event.getInventory()).getOffers()) {
+            getLogger().info("[replaceAllTrades] - inventory - TradeOffer toString is: " + offer.toString());
         }
-        for (TradeOffer offer: event.getMerchant().getOffers()) {
-            getLogger().info("[setUpCustomTrades] - merchant_check - Type is: " + offer.getTradeType().toString());
-        }
-    }
-    
-    /*
-     * This listener will print out information showing that the event's trades do not
-     * reflect the Merchant's offers list.
-     */ 
-    @EventHandler
-    public void setUpCustomTrades(MerchantTradeEvent event) {
-        for (TradeOffer offer : event.getOffers()) {
-            getLogger().info("[setUpCustomTrades] - remove - Type is: " + offer.getTradeType().toString());
-            if (offer.getTradeType() == TradeType.VANILLA) {
-                event.removeOffer(offer);
-            }
-        }
-        ItemStack emerald = new ItemStack(Material.EMERALD, 1);
-        ItemStack result = new ItemStack(Material.GOLD_INGOT, 1);
-        ItemMeta meta = result.getItemMeta();
-        meta.setDisplayName(ChatColor.AQUA + "Customized TradeOffer Result");
-        meta.setLore(Arrays.asList("This is a customized offer generated from", "TestTradingPlugin#setUpCustomTrades."));
-        result.setItemMeta(meta);
-        event.addOffer(new TradeOffer(emerald, result));
-        for (TradeOffer offer: event.getOffers()) {
-            getLogger().info("[setUpCustomTrades] - add - Type is: " + offer.getTradeType().toString());
-        }
-        for (TradeOffer offer: event.getMerchant().getOffers()) {
-            getLogger().info("[setUpCustomTrades] - merchant_check - Type is: " + offer.getTradeType().toString());
+        for (TradeOffer offer: merchant.getOffers()) {
+            getLogger().info("[replaceAllTrades] - merchant_check - TradeOffer toString is: " + offer.toString());
         }
     }
     
@@ -73,19 +56,26 @@ public class TestTradingPlugin extends JavaPlugin implements Listener {
      * Test whether adding trades to the Merchant alter the event's trades
      */
     @EventHandler
-    public void addCustomTradeToMerchant(MerchantTradeEvent event) {
+    public void addCustomTradeToMerchant(InventoryOpenEvent event) {
+        if (!(event.getInventory() instanceof MerchantInventory)) {
+            return;
+        }
+        Merchant merchant = ((MerchantInventory) event.getInventory()).getMerchant();
         ItemStack emerald = new ItemStack(Material.EMERALD, 1);
         ItemStack result = new ItemStack(Material.GOLD_INGOT, 1);
         ItemMeta meta = result.getItemMeta();
         meta.setDisplayName(ChatColor.AQUA + "Customized TradeOffer Result");
         meta.setLore(Arrays.asList("This is a customized offer generated from", "TestTradingPlugin#addCustomTradeToMerchant."));
         result.setItemMeta(meta);
-        event.getMerchant().addOffer(new TradeOffer(emerald, result));
-        for (TradeOffer offer: event.getOffers()) {
-            getLogger().info("[setUpCustomTrades] - event - Type is: " + offer.getTradeType().toString());
+        merchant.addOffer(TradeOffer.builder()
+                .withFirstItem(emerald)
+                .withResultingItem(result)
+                .build());
+        for (TradeOffer offer: ((MerchantInventory) event.getInventory()).getOffers()) {
+            getLogger().info("[addCustomTradeToMerchant] - inventory - TradeOffer toString is: " + offer.toString());
         }
-        for (TradeOffer offer: event.getMerchant().getOffers()) {
-            getLogger().info("[setUpCustomTrades] - merchant - Type is: " + offer.getTradeType().toString());
+        for (TradeOffer offer: merchant.getOffers()) {
+            getLogger().info("[addCustomTradeToMerchant] - merchant - TradeOffer toString is: " + offer.toString());
         }
     }
     
@@ -93,27 +83,39 @@ public class TestTradingPlugin extends JavaPlugin implements Listener {
      * Add custom trade if doesn't exist
      */
     @EventHandler
-    public void addIfNotExists(MerchantTradeEvent event) {
+    public void addIfNotExists(InventoryOpenEvent event) {
+        if (!(event.getInventory() instanceof MerchantInventory)) {
+            return;
+        }
+        List<TradeOffer> offers = ((MerchantInventory) event.getInventory()).getOffers();
+        Merchant merchant = ((MerchantInventory) event.getInventory()).getMerchant();
         ItemStack emerald = new ItemStack(Material.EMERALD, 1);
         ItemStack result = new ItemStack(Material.GOLD_INGOT, 1);
         ItemMeta meta = result.getItemMeta();
         meta.setDisplayName(ChatColor.AQUA + "Customized TradeOffer Result");
         meta.setLore(Arrays.asList("This is a customized offer generated from", "TestTradingPlugin#addIfNotExists."));
         result.setItemMeta(meta);
-        TradeOffer myOffer = new TradeOffer(emerald, result);
+        TradeOffer myOffer = TradeOffer.builder()
+                .withFirstItem(emerald)
+                .withResultingItem(result)
+                .build();
         boolean hasMyOffer = false;
-        for (TradeOffer offer : event.getOffers()) {
+        for (TradeOffer offer : offers) {
             if (offer.equals(myOffer)) hasMyOffer = true;
         }
         if (!hasMyOffer) {
-            event.addOffer(myOffer);
+            getLogger().info("[addIfNotExists] - the trade list does not have my offer!");
+            merchant.addOffer(myOffer);
         }
-        for (TradeOffer offer: event.getOffers()) {
-            getLogger().info("[addIfNotExists] - event - Type is: " + offer.getTradeType().toString());
+        for (TradeOffer offer: ((MerchantInventory) event.getInventory()).getOffers()) {
+            getLogger().info("[addIfNotExists] - event - TradeOffer toString is: " + offer.toString());
         }
-        for (TradeOffer offer: event.getMerchant().getOffers()) {
-            getLogger().info("[addIfNotExists] - merchant - Type is: " + offer.getTradeType().toString());
+        for (TradeOffer offer: merchant.getOffers()) {
+            getLogger().info("[addIfNotExists] - merchant - TradeOffer toString is: " + offer.toString());
         }
     }
+    /*
+     * Easy comment line to allow simple removal of one '/' to isolate single listeners.
+     */
 
 }
